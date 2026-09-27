@@ -6,6 +6,7 @@ from datetime import date
 import uuid
 import qrcode
 
+
 # =====================================================
 # PAGE SETUP
 # =====================================================
@@ -19,6 +20,7 @@ st.set_page_config(
 CERTIFICATE_THRESHOLD = 60
 
 APP_URL = "https://smart-campus-certificate-9wv5la9yqmbnpso5zzjbsr.streamlit.app"
+
 
 # =====================================================
 # SUPABASE CONFIG
@@ -34,6 +36,14 @@ HEADERS = {
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json"
 }
+
+
+# =====================================================
+# CERTIFICATE ID
+# =====================================================
+
+def generate_certificate_id():
+    return "SC-" + str(uuid.uuid4())[:8].upper()
 
 
 # =====================================================
@@ -106,13 +116,9 @@ def get_student_by_certificate(certificate_id):
     return None
 
 
-def generate_certificate_id():
-
-    return (
-        "SC-"
-        + str(uuid.uuid4())[:8].upper()
-    )
-
+# =====================================================
+# UPDATE CERTIFICATE
+# =====================================================
 
 def update_certificate(
     student_id,
@@ -190,6 +196,7 @@ def create_certificate(
 
     width, height = A4
 
+
     # Border
     pdf.rect(
         40,
@@ -197,6 +204,7 @@ def create_certificate(
         width - 80,
         height - 80
     )
+
 
     # Title
     pdf.setFont(
@@ -210,6 +218,7 @@ def create_certificate(
         "CERTIFICATE OF COMPLETION"
     )
 
+
     # Organization
     pdf.setFont(
         "Helvetica",
@@ -221,6 +230,7 @@ def create_certificate(
         height - 160,
         "SMART CAMPUS"
     )
+
 
     # Award text
     pdf.setFont(
@@ -234,6 +244,7 @@ def create_certificate(
         "This certificate is proudly awarded to"
     )
 
+
     # Student name
     pdf.setFont(
         "Helvetica-Bold",
@@ -245,6 +256,7 @@ def create_certificate(
         height - 275,
         student_name
     )
+
 
     # Course
     pdf.setFont(
@@ -269,6 +281,7 @@ def create_certificate(
         course_name
     )
 
+
     # Completion
     pdf.setFont(
         "Helvetica",
@@ -281,6 +294,7 @@ def create_certificate(
         f"Course Completion: {completion}%"
     )
 
+
     # Date
     pdf.drawString(
         80,
@@ -288,12 +302,14 @@ def create_certificate(
         f"Issued: {issue_date}"
     )
 
+
     # Certificate ID
     pdf.drawString(
         80,
         75,
         f"Certificate ID: {certificate_id}"
     )
+
 
     # QR
     pdf.drawImage(
@@ -303,6 +319,7 @@ def create_certificate(
         width=90,
         height=90
     )
+
 
     pdf.setFont(
         "Helvetica",
@@ -329,6 +346,7 @@ qr_certificate_id = st.query_params.get(
     ""
 )
 
+
 # =====================================================
 # DIRECT QR VERIFICATION PAGE
 # =====================================================
@@ -352,6 +370,7 @@ if qr_certificate_id:
     student = get_student_by_certificate(
         certificate_id
     )
+
 
     if student:
 
@@ -378,6 +397,7 @@ if qr_certificate_id:
                 f'{student["completion"]}%'
             )
 
+
         with col2:
 
             st.write("**Certificate ID**")
@@ -394,6 +414,7 @@ if qr_certificate_id:
             st.write(
                 student["assessment"]
             )
+
 
         st.divider()
 
@@ -456,13 +477,16 @@ if view == "🔐 Teacher / Admin":
         "Add Student Academic Record"
     )
 
+
     student_name = st.text_input(
         "Student Name"
     )
 
+
     course_name = st.text_input(
         "Course Name"
     )
+
 
     col1, col2 = st.columns(2)
 
@@ -475,6 +499,7 @@ if view == "🔐 Teacher / Admin":
             step=1
         )
 
+
     with col2:
 
         total_modules = st.number_input(
@@ -484,6 +509,7 @@ if view == "🔐 Teacher / Admin":
             step=1
         )
 
+
     assessment = st.selectbox(
         "Final Assessment",
         [
@@ -492,20 +518,24 @@ if view == "🔐 Teacher / Admin":
         ]
     )
 
+
     completion = int(
         (modules_completed / total_modules) * 100
     )
+
 
     st.info(
         f"📊 Automatic Completion: "
         f"**{completion}%**"
     )
 
+
     st.caption(
         f"Certificate eligibility: "
         f"{CERTIFICATE_THRESHOLD}%+ completion "
         f"AND Final Assessment Passed."
     )
+
 
     if st.button(
         "💾 Save Student Record",
@@ -540,6 +570,7 @@ if view == "🔐 Teacher / Admin":
                 assessment
             )
 
+
             if response.status_code in [200, 201]:
 
                 st.success(
@@ -547,7 +578,25 @@ if view == "🔐 Teacher / Admin":
                     "to online database."
                 )
 
-                st.rerun()
+                st.write(
+                    "🎓 Certificate ID:"
+                )
+
+                try:
+                    saved_data = response.json()
+
+                    if saved_data:
+                        st.code(
+                            saved_data[0]["certificate_id"]
+                        )
+
+                except:
+                    pass
+
+                st.info(
+                    "Go to Student Certificates "
+                    "to generate the PDF."
+                )
 
             else:
 
@@ -574,7 +623,9 @@ elif view == "👨‍🎓 Student Certificates":
         "View and generate issued certificates."
     )
 
+
     students = get_students()
+
 
     if not students:
 
@@ -600,6 +651,7 @@ elif view == "👨‍🎓 Student Certificates":
 
             issue_date = student["issue_date"]
 
+
             with st.expander(
                 f"{name} — {course}"
             ):
@@ -614,10 +666,22 @@ elif view == "👨‍🎓 Student Certificates":
                     f"{assessment}"
                 )
 
+                st.write(
+                    f"**Certificate ID:** "
+                    f"`{certificate_id}`"
+                )
+
+                st.write(
+                    f"**Issue Date:** "
+                    f"{issue_date}"
+                )
+
+
                 eligible = (
                     completion >= CERTIFICATE_THRESHOLD
                     and assessment == "Passed"
                 )
+
 
                 if eligible:
 
@@ -625,92 +689,51 @@ elif view == "👨‍🎓 Student Certificates":
                         "✅ Eligible for certificate."
                     )
 
-                    if not certificate_id:
 
-                        if st.button(
-                            "🎓 Generate Certificate ID",
-                            key=f"generate_{student_id}"
-                        ):
+                    if st.button(
+                        "📄 Generate Certificate PDF",
+                        key=f"pdf_{student_id}"
+                    ):
 
-                            new_id = (
-                                generate_certificate_id()
+                        pdf_file, qr_file = (
+                            create_certificate(
+                                name,
+                                course,
+                                completion,
+                                certificate_id,
+                                issue_date
                             )
-
-                            today = date.today().strftime(
-                                "%d %B %Y"
-                            )
-
-                            response = update_certificate(
-                                student_id,
-                                new_id,
-                                today
-                            )
-
-                            if response.status_code in [200, 204]:
-
-                                st.success(
-                                    "🎉 Certificate generated!"
-                                )
-
-                                st.rerun()
-
-                            else:
-
-                                st.error(
-                                    "Could not generate certificate."
-                                )
-
-                                st.code(
-                                    response.text
-                                )
-
-                    else:
-
-                        st.write(
-                            f"**Certificate ID:** "
-                            f"`{certificate_id}`"
                         )
 
-                        if st.button(
-                            "📄 Generate Certificate PDF",
-                            key=f"pdf_{student_id}"
-                        ):
 
-                            pdf_file, qr_file = (
-                                create_certificate(
-                                    name,
-                                    course,
-                                    completion,
-                                    certificate_id,
-                                    issue_date
-                                )
+                        st.success(
+                            "🎉 Certificate PDF created!"
+                        )
+
+
+                        with open(
+                            pdf_file,
+                            "rb"
+                        ) as file:
+
+                            st.download_button(
+                                "⬇️ Download Certificate",
+                                data=file,
+                                file_name=pdf_file,
+                                mime="application/pdf",
+                                key=f"download_{student_id}"
                             )
 
-                            st.success(
-                                "🎉 Certificate PDF created!"
-                            )
 
-                            with open(
-                                pdf_file,
-                                "rb"
-                            ) as file:
+                        st.image(
+                            qr_file,
+                            width=150
+                        )
 
-                                st.download_button(
-                                    "⬇️ Download Certificate",
-                                    data=file,
-                                    file_name=pdf_file,
-                                    mime="application/pdf",
-                                    key=f"download_{student_id}"
-                                )
 
-                            st.image(
-                                qr_file,
-                                width=150
-                            )
-
-                            st.caption(
-                                "Scan this QR code to verify."
-                            )
+                        st.caption(
+                            "Scan this QR code to verify."
+                        )
 
                 else:
 
@@ -739,10 +762,12 @@ elif view == "🔎 Verify Certificate":
         "🔎 Certificate Verification"
     )
 
+
     certificate_id = st.text_input(
         "Certificate ID",
         placeholder="Example: SC-A12B34CD"
     )
+
 
     if st.button(
         "🔍 Verify Certificate",
@@ -763,9 +788,11 @@ elif view == "🔎 Verify Certificate":
                 .upper()
             )
 
+
             student = get_student_by_certificate(
                 certificate_id
             )
+
 
             if student:
 
