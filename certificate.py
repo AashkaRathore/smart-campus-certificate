@@ -47,13 +47,16 @@ def add_student(
     assessment
 ):
 
+    certificate_id = generate_certificate_id()
+    issue_date = date.today().strftime("%d %B %Y")
+
     data = {
-        "certificate_id": None,
+        "certificate_id": certificate_id,
         "student_name": student_name,
         "course_name": course_name,
         "completion": int(completion),
         "assessment": assessment,
-        "issue_date": None
+        "issue_date": issue_date
     }
 
     response = requests.post(
